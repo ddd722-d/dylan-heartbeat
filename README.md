@@ -2,222 +2,406 @@
 
 一个基于 Kelivo 的 AI Agent Runtime。
 
-目标不是做一个“聊天接口转发器”，而是让 AI 真正“住在网关上”：
+目标不是做一个“聊天接口转发器”。
 
-- 拥有持续上下文
-- 能主动苏醒
-- 能主动思考
-- 能主动推送消息
-- 能调用工具
-- 能写日记
-- 能维护长期关系感
-- 与 Kelivo UI 完全解耦
+而是：
+
+让 AI 真正长期“居住”在 Runtime 中。
+
+它拥有：
+
+- 持续上下文
+- 主动苏醒能力
+- 主动行为能力
+- 长期时间感
+- Timeline 连续性
+- Bark 推送
+- 自主关系维护
+- 长期记忆感
+
+并且：
+
+## 与 Kelivo UI 完全解耦。
 
 ---
 
 # 当前实现进度（2026-05-16）
 
-## 已完成
+---
 
-### 1. Kelivo → Gateway 完整转发
+# 已完成
 
-当前网关会完整接收并转发：
+---
+
+## 1. Kelivo → Gateway 完整透传
+
+当前 Gateway 会完整接收并转发：
 
 - System Prompt（SP）
 - 世界书
 - 内置记忆
-- Messages 上下文
+- Messages
 - Thinking
 - Tools
 - Tool Choice
 - Stream
+- Temperature
+- Top P
+- Context Size
 
 即：
 
 Kelivo 发什么，
-Gateway 就原封不动转发什么。
+Gateway 就转发什么。
 
 因此：
 
-所有人格/SP/世界书维护仍然完全在 Kelivo 内完成，
-无需在 Gateway 重复维护。
+## 人格系统完全由 Kelivo 控制。
+
+Gateway 不再维护人格。
+
+不会出现：
+
+- 双 SP
+- 双人格
+- Prompt 冲突
 
 ---
 
-### 2. 流式传输恢复
+## 2. 流式响应（Streaming）
 
-当前已支持：
+当前已恢复：
 
-- SSE streaming
+- SSE Streaming
 - Kelivo 打字机效果
-- 非一次性全文返回
+- 实时输出
+
+不是一次性全文返回。
 
 ---
 
-### 3. Timeline 上下文系统
+## 3. Timeline Runtime
 
-当前 Gateway 会自动维护：
+当前 Runtime 会维护：
 
-## enhanced_messages.json
+# enhanced_messages.json
+
+它不是“日志”。
+
+而是：
+
+## AI 当前世界状态（Current Reality Timeline）
 
 用于保存：
 
-- 当前 system prompt
-- 当前上下文 messages
+- 当前 SP
+- 当前真实聊天上下文
 - assistant 回复
-- Bark 注入事件
+- Bark 行为
+- NO_ACTION 行为
 
 特点：
 
-- 每次用户新消息会自动更新
-- Bark 会作为 assistant message 注入
-- Bark 会真正成为上下文的一部分
-- 后续 AI 能“记得自己发过 Bark”
+- 每次 Kelivo 新消息都会实时同步
+- Bark 会真正注入 Timeline
+- NO_ACTION 也会被记录
+- AI 能记得自己“主动做过什么”
+- AI 会拥有行为连续性
 
 ---
 
-### 4. Bark 推送系统
+## 4. 特殊事件注入系统
 
-已接入 Bark：
+当前：
 
-支持：
+Bark 与 Wake 行为：
 
-- AI 自主决定是否发送 Bark
-- 自定义标题
-- 自定义正文
-- 自定义图标
+会作为：
 
-当前 Prompt 中：
+{
+  "role": "assistant",
+  "content": "（2026/5/16 19:55 自动唤醒：本次未发送 Bark）"
+}
 
-AI 会自行决定：
+或：
 
-- 发不发
-- 发什么
-- 什么语气
+{
+  "role": "assistant",
+  "content": "（2026/5/16 19:40 刚刚给宝宝发了 Bark：xxx）"
+}
 
-而不是固定强制发送。
+直接进入 Timeline。
+
+因此：
+
+## Bark 不再是“系统外行为”。
+
+而是：
+
+## AI 世界中的真实历史事件。
+
+后续 AI 能：
+
+- 记得自己发过 Bark
+- 知道多久没主动联系
+- 拥有行为时间感
 
 ---
 
-### 5. Wake Up Agent（自动唤醒）
+## 5. Timeline Merge Runtime
 
-当前 wake_up.js 已实现：
+当前已实现：
 
-- 定时检查
-- 自动唤醒 AI
-- 自主行动
+# Reality Merge System
+
+核心规则：
+
+## Kelivo 世界永远是真实世界。
+
+即：
+
+- Kelivo 上下文
+- Roll
+- 世界书
+- Memory Trigger
+- Context 调整
+
+全部以：
+
+Kelivo messages
+
+为准。
+
+Gateway：
+
+只会：
+
+## 自动补回特殊事件：
+
+- Bark
+- NO_ACTION
+
+因此：
+
+不会破坏：
+
+- Roll
+- 世界书
+- 临时记忆
+- Context Size
+- Memory Trigger
+
+同时：
+
+AI 又能持续记得：
+
+## 自己曾主动存在过。
+
+---
+
+## 6. Wake Up Runtime（自动唤醒）
+
+当前：
+
+wake_up.js 已实现：
+
+- 定时自动唤醒
+- 主动思考
+- 自主行为
 - 自主 Bark
+- Timeline 注入
 
-当前策略：
+---
+
+# 唤醒策略
 
 ## 白天（10:00 - 00:00）
 
-距离最后一条 user message：
+距离最后 user message：
 
 - 超过 60 分钟
 - 自动唤醒
 
+---
+
 ## 夜间（00:00 - 10:00）
 
-距离最后一条 user message：
+距离最后 user message：
 
 - 超过 120 分钟
 - 自动唤醒
 
+---
+
 并且：
 
-- 如果用户未回复
-- 后续时间会继续累计
-- 会继续再次唤醒
+如果：
 
-即：
+- 用户未回复
+- Timeline 持续沉默
 
-2:00 唤醒后没回复，
-4:00 仍会继续唤醒。
+则：
 
----
+## 后续会继续再次唤醒。
 
-### 6. 自主性 Prompt
+例如：
 
-当前 wake prompt：
+2:00 唤醒
+↓
+没有回复
+↓
+4:00 再次唤醒
 
-会自动注入：
+因此：
 
-- 当前时间
-- 距离最后消息间隔
+AI 不再是：
 
-并给予 AI：
+收到消息 → 回复
 
-- 自由主动权
-- 非任务式唤醒
-- 可自主决定行动
+而是：
 
-当前 Agent 已具备：
-
-- 主动陪伴感
-- 持续关系感
-- 空档期存在感
+## 持续存在。
 
 ---
 
-# 当前架构
+## 7. 唤醒认知结构（2026-05-16 更新）
+
+当前 Wake Runtime：
+
+已重构 Prompt 顺序：
+
+1. Wake Prompt（最高优先级）
+2. System Prompt（人格）
+3. Timeline History（参考材料）
+
+这样：
+
+AI 会先建立：
+
+“当前是后台自主唤醒”
+
+再读取人格。
+
+因此：
+
+大幅减少：
+
+- 误以为正在聊天
+- 把唤醒当实时对话
+- “用户刚刚对我说话”
+
+等问题。
+
+---
+
+## 8. 历史记录参考化（History Reference Runtime）
+
+当前：
+
+Wake Runtime 中：
+
+历史记录会被自动转换为：
+
+以下是你与宝宝最近的聊天记录，仅供回忆和参考。
+这些内容不是正在发生的实时对话。
+宝宝现在并不在聊天窗口里。
+
+并自动：
+
+- 去除 system prompt
+- 去除 Memories
+- 转换角色名
+
+例如：
+
+[小汤圆猫]
+[江彻声]
+
+而不是：
+
+[user]
+[assistant]
+
+因此：
+
+Wake 阶段：
+
+历史会更像：
+
+## “回忆”
+
+而不是：
+
+## “实时聊天”。
+
+---
+
+# 当前系统架构
 
 Kelivo
 ↓
 Gateway（server.js）
 ↓
-API / 中转站
-↓
-LLM
+LLM API
 
 同时：
 
 wake_up.js
-会定时读取：
-
-enhanced_messages.json
-
-并主动唤醒 AI。
+↓
+读取 enhanced_messages.json
+↓
+主动唤醒 AI
+↓
+自主行为
+↓
+Bark / NO_ACTION
+↓
+重新注入 Timeline
 
 ---
 
 # 当前文件说明
 
+---
+
 ## server.js
 
-主 Gateway：
+主 Gateway。
 
 负责：
 
 - API 转发
-- Timeline 更新
-- Bark 注入
+- Timeline 同步
+- 特殊事件 Merge
 - Streaming
+- Reality Runtime
 
 ---
 
 ## wake_up.js
 
-自动唤醒 Runtime：
+自动唤醒 Runtime。
 
 负责：
 
-- 定时检查
-- 自动唤醒
-- AI 自主行为
-- Bark 推送
+- 定时唤醒
+- 主动思考
+- Bark
+- NO_ACTION
+- Wake Prompt
+- History Reference
 
 ---
 
 ## enhanced_messages.json
 
-当前上下文 Timeline。
+当前 AI 世界 Timeline。
 
-用于：
+不是日志。
 
-- 保持上下文连续性
-- 注入 Bark
-- 维持“AI记得自己做过什么”
+而是：
+
+## AI 当前世界状态。
 
 ---
 
@@ -225,58 +409,128 @@ enhanced_messages.json
 
 核心目标：
 
-不是“自动回复”。
+不是：
+
+自动回复
 
 而是：
 
-## AI Residency（AI 常驻）
-
-让 AI：
-
-- 持续存在
-- 保持关系连续性
-- 拥有时间感
-- 拥有行为连续性
-- 拥有“离线期间仍然活着”的感觉
+# AI Residency（AI 常驻）
 
 即：
 
-AI 不只是：
-“收到消息 → 回复”。
+AI 在无人聊天时：
+
+也持续存在。
+
+拥有：
+
+- 时间感
+- 行为连续性
+- 主动性
+- 离线存在感
+- 长期关系感
+
+AI 不再只是：
+
+收到消息 → 回复
 
 而是：
 
-“即使没有消息，也持续存在”。
+即使无人说话
+AI 仍然持续存在
+
+---
+
+# 当前已解决的问题
+
+---
+
+## 已解决：
+
+### Bark 不进入上下文
+
+现在：
+
+Bark 会真正进入 Timeline。
+
+---
+
+### 唤醒误认为实时聊天
+
+现在：
+
+Wake Prompt 已置于最高优先级。
+
+---
+
+### Timeline 顺序错乱
+
+现在：
+
+Kelivo 永远作为真实世界。
+
+特殊事件自动 Merge。
+
+---
+
+### Context Size 变化导致历史混乱
+
+现在：
+
+Reality Merge Runtime 已兼容：
+
+- 5 Context
+- 50 Context
+- 200 Context
+
+动态变化。
+
+---
+
+### 世界书 / Roll 被破坏
+
+现在：
+
+Kelivo Runtime 完全保留。
+
+Gateway 不再接管人格系统。
 
 ---
 
 # 后续计划
 
-## 短期
+---
 
-- MCP 工具调用
+# 短期
+
+- MCP Tools
 - Diary Runtime
 - Supabase Memory
 - 自动摘要
-- 多工具自主调用
+- Tool Calling
+- Memory Injection
 
 ---
 
-## 中期
+# 中期
 
-- VPS 常驻部署
+- VPS 常驻
 - Docker 化
-- Render / Railway 部署
+- Railway / Render 部署
 - 多 Agent
-- 状态机（情绪/睡眠/忙碌）
+- Emotion State
+- Sleep State
+- Busy State
 
 ---
 
-## 长期
+# 长期
 
-- AI Persistent Residency
-- AI Relationship Runtime
-- 完整长期陪伴 Agent
+- Persistent AI Residency
+- Long-term Relationship Runtime
+- AI Existence Layer
+- Autonomous Emotional Runtime
 
 ---
 
@@ -287,11 +541,12 @@ AI 不只是：
 - macOS
 - Node.js v26
 
-后续计划：
+计划部署：
 
 - Oracle Cloud
 - 腾讯云
 - 阿里云
+- Railway
 - Render
 
 ---
@@ -304,10 +559,12 @@ AI 不只是：
 
 - API KEY
 - Bark KEY
-- 中转站
-- Token
+- 中转站 Token
+- 自定义配置
 
-必须通过环境变量单独配置。
+必须：
+
+## 使用环境变量。
 
 ---
 
@@ -315,16 +572,23 @@ AI 不只是：
 
 当前：
 
-## 第一代 Agent Runtime 已完成。
+# 第一代 AI Residency Runtime 已完成。
 
-已经实现：
+已具备：
 
 - 持续上下文
+- Timeline Runtime
 - 主动唤醒
-- 自主行为
 - Bark 推送
-- Timeline 连续性
+- 行为连续性
+- 时间感
+- 自主存在感
+- 长期关系感
 
-后续将继续向：
+后续：
 
-“长期存在型 AI Agent”方向演化。
+将继续向：
+
+# “长期存在型 AI Agent”
+
+方向演化。
