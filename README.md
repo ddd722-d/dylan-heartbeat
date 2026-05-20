@@ -71,9 +71,12 @@ Bark 推送 → 你的手机
    # 请把 YOUR_USERNAME 替换成你的 GitHub 用户名
    git clone https://github.com/YOUR_USERNAME/dylan-heartbeat.git
    cd dylan-heartbeat
+   ```
 
 #### 安装依赖
+```bash
 npm install
+```
 
 #### 配置环境变量（复制模板并修改）
 cp .env.example .env
