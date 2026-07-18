@@ -15,14 +15,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: 测试 Bark 推送（GET 方式）
-        run: |
-          curl -X GET "${{ secrets.BARK_URL }}/测试/来自GitHub的测试消息"
-      - name: 如果 GET 失败，尝试 POST 方式
+      
+      - name: 发送 Bark 推送（multipart/form-data）
         run: |
           curl -X POST "${{ secrets.BARK_URL }}" \
-            -H "Content-Type: application/json" \
-            -d '{"title":"测试","body":"GitHub Actions 推送成功","device_key":"${{ secrets.BARK_TOKEN }}"}'
+            -F "title=测试" \
+            -F "msg=来自GitHub Actions的推送" \
+            -F "token=${{ secrets.BARK_TOKEN }}" \
+            -F "issecure=0"
+      
       - run: npm install
       - run: timeout 10s node wake_up.js || echo "Timeout"
         env:
