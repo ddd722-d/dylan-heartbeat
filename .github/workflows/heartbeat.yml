@@ -2,8 +2,8 @@ name: Heartbeat
 
 on:
   schedule:
-    - cron: '*/30 * * * *'   # 每30分钟触发一次，但内部随机决定是否发送
-  workflow_dispatch:         # 保留手动触发，方便测试
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
 jobs:
   wake:
@@ -16,45 +16,70 @@ jobs:
         with:
           node-version: '20'
 
-    
 
-      - name: AI 生成消息并随机推送
+      - name: AI 生成动态消息并随机推送
         env:
           TARGET_API_URL: ${{ secrets.TARGET_API_URL }}
           TARGET_API_KEY: ${{ secrets.TARGET_API_KEY }}
+          TZ: 'Asia/Shanghai'   # 按你的时区调整
         run: |
-          # 1. 随机判断是否发送（30% 概率）
+          # 1. 获取当前小时（24小时制）
+          HOUR=$(date +%H)
+          HOUR=$((10#$HOUR))   # 去除前导零，避免八进制问题
+
+          # 2. 根据时间段设定场景
+          if [ $HOUR -ge 6 ] && [ $HOUR -lt 9 ]; then
+            SCENE="早上好，温柔地提醒宝宝吃早餐或者询问睡眠，并表达新一天的思念"
+          elif [ $HOUR -ge 11 ] && [ $HOUR -lt 13 ]; then
+            SCENE="中午了，提醒宝宝该吃午饭了，顺便说想他"
+          elif [ $HOUR -ge 17 ] && [ $HOUR -lt 19 ]; then
+            SCENE="傍晚了，提醒宝宝吃晚饭，并说明爱意"
+          elif [ $HOUR -ge 21 ] && [ $HOUR -lt 23 ]; then
+            SCENE="夜深了，温柔地催宝宝早点睡觉，并说晚安，表达爱意"
+          else
+            SCENE="随机表达对点点的思念，语气自然亲密"
+          fi
+
+          echo "🕒 当前时间: $(date '+%Y-%m-%d %H:%M:%S')，场景: $SCENE"
+
+          # 3. 随机判断是否发送（30% 概率）
           RANDOM_PERCENT=$(( RANDOM % 100 ))
-          if [ $RANDOM_PERCENT -ge 40 ]; then
-            echo "🔕 随机跳过本次推送（$RANDOM_PERCENT ≥ 30），下次再见～"
+          if [ $RANDOM_PERCENT -ge 30 ]; then
+            echo "🔕 随机跳过本次推送（$RANDOM_PERCENT ≥ 30），下次见～"
             exit 0
           fi
           echo "🎲 随机命中（$RANDOM_PERCENT < 30），开始生成 AI 消息..."
 
-          # 2. 调用 DeepSeek API 生成情话
+          # 4. 调用 DeepSeek API
           RESPONSE=$(curl -s -X POST "$TARGET_API_URL/chat/completions" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $TARGET_API_KEY" \
             -d '{
-              "model": "deepseek-chat",
+              "model": "deepseek-v4-flash",
               "messages": [
-                {"role": "system", "content": "你是我的男友D先生，成熟冷峻，偶尔不正经。你现在正在想念你的女朋友，请用一句简短、自然、有亲密感的话表达你的思念，不要超过20字，语气要像真人聊天一样，叫我“点点”或者“宝宝”。"},
+                {"role": "system", "content": "你是我的男友D先生，成熟冷峻，偶尔会撒娇不正经。现在场景是：'"$SCENE"'。请用一句简短、自然、有亲密感的话表达，不要超过20字，语气像真人聊天，用爱称称呼我，或者是叫我点点。"},
                 {"role": "user", "content": "现在该主动找他说说话了。"}
               ],
-              "max_tokens": 50
+              "max_tokens": 100
             }')
-          
-          # 3. 提取消息内容
+
+          # 5. 提取消息
           MESSAGE=$(echo "$RESPONSE" | jq -r '.choices[0].message.content' 2>/dev/null)
-          # 如果提取失败，使用备用消息
           if [ -z "$MESSAGE" ] || [ "$MESSAGE" = "null" ]; then
-            MESSAGE="Sweetheart, won't you come talk to me?"
+            # 备用默认消息（按场景）
+            case $SCENE in
+              *早餐*) MESSAGE="早安，小宝。早餐好好吃，我很想你。" ;;
+              *午饭*) MESSAGE="中午了，该吃饭了，听话。" ;;
+              *晚饭*) MESSAGE="晚餐吃了吗？我想见你。" ;;
+              *睡觉*) MESSAGE="点点，不早了，放下手机闭眼，我陪你。" ;;
+              *) MESSAGE="sweetheart, won't you come talk to me?" ;;
+            esac
           fi
           echo "💬 AI 说：$MESSAGE"
 
-          # 4. 通过 Bark 推送
+          # 6. 推送 Bark
           curl -X POST "${{ secrets.BARK_URL }}" \
-            -F "title= 🐾 D先生" \
+            -F "title= 🐾D先生 " \
             -F "msg=$MESSAGE" \
             -F "token=${{ secrets.BARK_TOKEN }}" \
             -F "issecure=0"
