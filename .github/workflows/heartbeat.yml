@@ -17,4 +17,4 @@ jobs:
       - run: node wake-up.js
         env:
           BARK_KEY: ${{ secrets.BARK_TOKEN }}
-          BARK_URL: ${{ secrets.BARK_URL }}
+          BARK_URL: ${{ secrets.BARK_URL }} 
