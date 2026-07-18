@@ -11,14 +11,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0       # 强制拉取完整历史，确保所有文件都检出
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
       - run: pwd
       - run: ls -la
       - run: find . -name "wake-up.js"
-      - run: cat package.json   # 查看依赖信息
+      - run: cat package.json
       - run: npm install
       - run: node wake-up.js
         env:
