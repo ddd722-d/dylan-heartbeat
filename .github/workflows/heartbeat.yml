@@ -17,10 +17,11 @@ jobs:
           node-version: '18'
       - run: pwd
       - run: ls -la
-      - run: find . -name "wake_up.js"
+      - run: find . -name "wake_up.js"   # 保留这一行，确认文件存在
+      - run: cat wake_up.js              # 打印脚本内容，便于分析
       - run: cat package.json
       - run: npm install
-      - run: node wake_up.js
+      - run: timeout 10s node wake_up.js || echo "Timeout or error"
         env:
           BARK_KEY: ${{ secrets.BARK_TOKEN }}
           BARK_URL: ${{ secrets.BARK_URL }}
