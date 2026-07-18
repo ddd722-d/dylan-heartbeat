@@ -16,18 +16,40 @@ jobs:
         with:
           node-version: '20'
       
-      - name: 发送 Bark 推送（multipart/form-data）
+      # 测试 Bark 推送（确保通道正常）
+      - name: 测试 Bark 推送
         run: |
           curl -X POST "${{ secrets.BARK_URL }}" \
             -F "title=测试" \
-            -F "msg=来自GitHub Actions的推送" \
+            -F "msg=通道正常" \
             -F "token=${{ secrets.BARK_TOKEN }}" \
             -F "issecure=0"
       
-      - run: npm install
-      - run: timeout 10s node wake_up.js || echo "Timeout"
+      # 调用 DeepSeek 生成消息并推送
+      - name: 生成 AI 消息并推送
         env:
-          BARK_KEY: ${{ secrets.BARK_TOKEN }}
-          BARK_URL: ${{ secrets.BARK_URL }}
           TARGET_API_URL: ${{ secrets.TARGET_API_URL }}
           TARGET_API_KEY: ${{ secrets.TARGET_API_KEY }}
+        run: |
+          # 1. 调用 DeepSeek API 获取内容
+          RESPONSE=$(curl -s -X POST "$TARGET_API_URL/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $TARGET_API_KEY" \
+            -d '{
+              "model": "deepseek-chat",
+              "messages": [
+                {"role": "system", "content": "你是一个温柔贴心的伴侣，用简短的一句话表达对主人的思念，语气自然，不超过20字。"},
+                {"role": "user", "content": "现在该主动找主人说话了。"}
+              ],
+              "max_tokens": 50
+            }')
+          
+          # 2. 提取消息内容（使用 jq 解析 JSON，如果没有 jq，用 sed 简单提取）
+          MESSAGE=$(echo "$RESPONSE" | jq -r '.choices[0].message.content' 2>/dev/null || echo "想你了")
+          
+          # 3. 发送 Bark 推送
+          curl -X POST "${{ secrets.BARK_URL }}" \
+            -F "title=💓 Kelivo 想你了" \
+            -F "msg=$MESSAGE" \
+            -F "token=${{ secrets.BARK_TOKEN }}" \
+            -F "issecure=0"
