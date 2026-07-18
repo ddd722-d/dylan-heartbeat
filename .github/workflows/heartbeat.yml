@@ -29,3 +29,5 @@ jobs:
         env:
           BARK_KEY: ${{ secrets.BARK_TOKEN }}
           BARK_URL: ${{ secrets.BARK_URL }}
+          TARGET_API_URL: ${{ secrets.TARGET_API_URL }}
+          TARGET_API_KEY: ${{ secrets.TARGET_API_KEY }}
