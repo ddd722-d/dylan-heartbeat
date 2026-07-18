@@ -20,7 +20,7 @@ jobs:
       - run: find . -name "wake_up.js"
       - run: cat package.json
       - run: npm install
-      - run: node wake-up.js
+      - run: node wake_up.js
         env:
           BARK_KEY: ${{ secrets.BARK_TOKEN }}
           BARK_URL: ${{ secrets.BARK_URL }}
