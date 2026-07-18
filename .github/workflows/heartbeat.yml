@@ -14,14 +14,17 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - run: pwd
-      - run: ls -la
-      - run: find . -name "wake_up.js"   # 保留这一行，确认文件存在
-      - run: cat wake_up.js              # 打印脚本内容，便于分析
-      - run: cat package.json
+          node-version: '20'
+      - name: 测试 Bark 推送（GET 方式）
+        run: |
+          curl -X GET "${{ secrets.BARK_URL }}/测试/来自GitHub的测试消息"
+      - name: 如果 GET 失败，尝试 POST 方式
+        run: |
+          curl -X POST "${{ secrets.BARK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{"title":"测试","body":"GitHub Actions 推送成功","device_key":"${{ secrets.BARK_TOKEN }}"}'
       - run: npm install
-      - run: timeout 10s node wake_up.js || echo "Timeout or error"
+      - run: timeout 10s node wake_up.js || echo "Timeout"
         env:
           BARK_KEY: ${{ secrets.BARK_TOKEN }}
           BARK_URL: ${{ secrets.BARK_URL }}
