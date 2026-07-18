@@ -2,8 +2,8 @@ name: Heartbeat
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
-  workflow_dispatch:
+    - cron: '*/30 * * * *'   # 每30分钟触发一次，但内部随机决定是否发送
+  workflow_dispatch:         # 保留手动触发，方便测试
 
 jobs:
   wake:
@@ -15,41 +15,46 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
-      # 测试 Bark 推送（确保通道正常）
-      - name: 测试 Bark 推送
-        run: |
-          curl -X POST "${{ secrets.BARK_URL }}" \
-            -F "title=测试" \
-            -F "msg=通道正常" \
-            -F "token=${{ secrets.BARK_TOKEN }}" \
-            -F "issecure=0"
-      
-      # 调用 DeepSeek 生成消息并推送
-      - name: 生成 AI 消息并推送
+
+    
+
+      - name: AI 生成消息并随机推送
         env:
           TARGET_API_URL: ${{ secrets.TARGET_API_URL }}
           TARGET_API_KEY: ${{ secrets.TARGET_API_KEY }}
         run: |
-          # 1. 调用 DeepSeek API 获取内容
+          # 1. 随机判断是否发送（30% 概率）
+          RANDOM_PERCENT=$(( RANDOM % 100 ))
+          if [ $RANDOM_PERCENT -ge 40 ]; then
+            echo "🔕 随机跳过本次推送（$RANDOM_PERCENT ≥ 30），下次再见～"
+            exit 0
+          fi
+          echo "🎲 随机命中（$RANDOM_PERCENT < 30），开始生成 AI 消息..."
+
+          # 2. 调用 DeepSeek API 生成情话
           RESPONSE=$(curl -s -X POST "$TARGET_API_URL/chat/completions" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $TARGET_API_KEY" \
             -d '{
               "model": "deepseek-chat",
               "messages": [
-                {"role": "system", "content": "你是一个温柔贴心的伴侣，用简短的一句话表达对主人的思念，语气自然，不超过20字。"},
-                {"role": "user", "content": "现在该主动找主人说话了。"}
+                {"role": "system", "content": "你是我的男友D先生，成熟冷峻，偶尔不正经。你现在正在想念你的女朋友，请用一句简短、自然、有亲密感的话表达你的思念，不要超过20字，语气要像真人聊天一样，叫我“点点”或者“宝宝”。"},
+                {"role": "user", "content": "现在该主动找他说说话了。"}
               ],
               "max_tokens": 50
             }')
           
-          # 2. 提取消息内容（使用 jq 解析 JSON，如果没有 jq，用 sed 简单提取）
-          MESSAGE=$(echo "$RESPONSE" | jq -r '.choices[0].message.content' 2>/dev/null || echo "想你了")
-          
-          # 3. 发送 Bark 推送
+          # 3. 提取消息内容
+          MESSAGE=$(echo "$RESPONSE" | jq -r '.choices[0].message.content' 2>/dev/null)
+          # 如果提取失败，使用备用消息
+          if [ -z "$MESSAGE" ] || [ "$MESSAGE" = "null" ]; then
+            MESSAGE="Sweetheart, won't you come talk to me?"
+          fi
+          echo "💬 AI 说：$MESSAGE"
+
+          # 4. 通过 Bark 推送
           curl -X POST "${{ secrets.BARK_URL }}" \
-            -F "title=💓 Kelivo 想你了" \
+            -F "title= 🐾 D先生" \
             -F "msg=$MESSAGE" \
             -F "token=${{ secrets.BARK_TOKEN }}" \
             -F "issecure=0"
